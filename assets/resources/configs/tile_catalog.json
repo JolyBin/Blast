@@ -1,0 +1,9 @@
+{
+  "tiles": [
+    { "id": 0, "kind": "normal", "sprite": "tiles/block_blue" },
+    { "id": 1, "kind": "normal", "sprite": "tiles/block_green" },
+    { "id": 2, "kind": "normal", "sprite": "tiles/block_purpure" },
+    { "id": 3, "kind": "normal", "sprite": "tiles/block_red" },
+    { "id": 4, "kind": "normal", "sprite": "tiles/block_yellow" }
+  ]
+}
