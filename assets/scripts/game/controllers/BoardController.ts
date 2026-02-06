@@ -52,10 +52,23 @@ export class BoardController {
                 this.tile[cellPoss.r][cellPoss.c] = null;
             });
         }
-        // await delay(2000);
-        // this.moveTileDown();
-        // this.updateViews();
-        // await delay(2000);
+        await delay(2000);
+        this.moveTileDown();
+        this.updateViews();
+        await delay(2000);
+        this.addNewTiles();
+    }
+
+    private addNewTiles() {
+        for (let r = 0; r < this.tile.length; r++) {
+            for (let c = 0; c < this.tile.length; c++) {
+                if (this.tile[r][c] == null) {
+                    const randomTileId: number = this.randomId();
+                    this.tile[r][c] = this.tileFactory.createTile(randomTileId);
+                    this.boardView.setFrameTile({ r: r, c: c }, this.framesById.get(randomTileId));
+                }
+            }
+        }
     }
 
     private updateViews() {
