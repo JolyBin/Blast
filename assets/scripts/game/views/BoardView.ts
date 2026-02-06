@@ -16,7 +16,7 @@ export class BoardView extends cc.Component {
 
     public init(rows: number, cols: number): void {
         this.tileViews = new Array(rows);
-        for(let i = 0; i < this.tileViews.length; i++){
+        for (let i = 0; i < this.tileViews.length; i++) {
             this.tileViews[i] = new Array(cols);
         }
         this.tilesRoot.removeAllChildren()
@@ -32,14 +32,12 @@ export class BoardView extends cc.Component {
         this.setFrameTile(cellPos, frame);
     }
 
-    public setFrameTile(cellPos: CellPos, frame: cc.SpriteFrame)
-    {
+    public setFrameTile(cellPos: CellPos, frame: cc.SpriteFrame) {
         this.tileViews[cellPos.r][cellPos.c].setFrame(frame);
         this.tileViews[cellPos.r][cellPos.c].setVisible(true);
     }
 
-    public setVisibleTile(cellPos: CellPos, value: boolean)
-    {
+    public setVisibleTile(cellPos: CellPos, value: boolean) {
         this.tileViews[cellPos.r][cellPos.c].setVisible(value);
     }
 }

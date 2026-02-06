@@ -1,4 +1,4 @@
-import { TileConfig } from "./TileConfig";
+import { TileConfig, TileType } from "./TileConfig";
 
 export class TileRegistry {
   private byId = new Map<number, TileConfig>();
@@ -7,10 +7,10 @@ export class TileRegistry {
     for (const d of tiles) this.byId.set(d.id, d);
   }
 
-  public getTileConfig(id: number): TileConfig {
-    const d = this.byId.get(id);
-    if (!d) throw new Error(`No Tile for id=${id}`);
-    return d;
+  public getTileConfigById(id: number): TileConfig {
+    const config = this.byId.get(id);
+    if (!config) throw new Error(`No Tile for id=${id}`);
+    return config;
   }
 
   public getSpawnTiles(): number[] {
@@ -21,6 +21,10 @@ export class TileRegistry {
     if(out.length === 0) {
       throw new Error("No normal tiles to spawn (tile_catalog.json)")
     }
+    return out;
+  }
+
+  public getAllTile(): number[]{
     return Array.from(this.byId.keys());
   }
 }

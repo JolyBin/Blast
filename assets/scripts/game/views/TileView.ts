@@ -27,3 +27,4 @@ export class TileView extends cc.Component {
         this.onClick?.()
     }
 }
+

@@ -1,0 +1,7 @@
+{
+  "minGroupToDestroy": 2,
+  "rules": [
+    { "minGroup": 4, "spawnIds": [5, 6] },
+    { "minGroup": 5, "spawnIds": [7] }
+  ]
+}

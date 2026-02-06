@@ -28,3 +28,13 @@ export type TileConfig = NormalTileConfig | BombTileConfig | RocketRowTileConfig
 export interface TileCatalogDTO {
   tiles: TileConfig[];
 }
+
+export interface SuperRuleDTO {
+  minGroup: number
+  spawnIds: number[] // ["rocketRow","rocketCol"] или ["bomb"]
+}
+
+export interface SuperRulesDTO {
+  minGroupToDestroy: number
+  rules: SuperRuleDTO[]
+}
