@@ -1,13 +1,13 @@
-import { Tile } from "./Tile";
+import { TileConfig } from "./TileConfig";
 
 export class TileRegistry {
-  private byId = new Map<number, Tile>();
+  private byId = new Map<number, TileConfig>();
 
-  constructor(defs: Tile[]) {
-    for (const d of defs) this.byId.set(d.id, d);
+  constructor(tiles: TileConfig[]) {
+    for (const d of tiles) this.byId.set(d.id, d);
   }
 
-  public getTile(id: number): Tile {
+  public getTileConfig(id: number): TileConfig {
     const d = this.byId.get(id);
     if (!d) throw new Error(`No Tile for id=${id}`);
     return d;

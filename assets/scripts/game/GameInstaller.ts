@@ -1,5 +1,6 @@
 import { TileCatalogLoader } from "./configs/TileCatalogLoader"
 import { BoardController } from "./controllers/BoardController"
+import { TileFactory } from "./controllers/TileFactory"
 import { BoardView } from "./views/BoardView"
 
 const { ccclass, property } = cc._decorator
@@ -16,18 +17,19 @@ export class GameInstaller extends cc.Component {
     const registry = await TileCatalogLoader.loadRegistry(this.catalogPath)
 
     // 2) готовим список ID для спавна (только normal)
-    const spawnIds = registry.getSpawnTiles()
+    const spawnTiles = registry.getSpawnTiles();
 
     // 3) грузим SpriteFrame для каждого id и складываем в map
-    const framesById = new Map<number, cc.SpriteFrame>()
-    for (const id of spawnIds) {
-      const def = registry.getTile(id)
-      const frame = await this.loadSpriteFrame(def.sprite)
-      framesById.set(id, frame)
+    const framesById = new Map<number, cc.SpriteFrame>();
+    for (const id of spawnTiles) {
+      const tile = registry.getTileConfig(id);
+      const frame = await this.loadSpriteFrame(tile.sprite);
+      framesById.set(id, frame);
     }
 
+    const tileFactory: TileFactory = new TileFactory(registry);
     // 4) генерим модель
-    const controller = new BoardController(this.rows, this.cols, spawnIds, this.boardView, framesById)
+    const controller = new BoardController(this.rows, this.cols, spawnTiles, tileFactory, this.boardView, framesById)
     const ids = controller.start()
   }
 

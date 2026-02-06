@@ -1,4 +1,4 @@
-import { TileCatalogDTO } from "./Tile";
+import { TileCatalogDTO } from "./TileConfig";
 import { TileRegistry } from "./TileRegistry";
 
 export class TileCatalogLoader {

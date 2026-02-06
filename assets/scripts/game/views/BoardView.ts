@@ -1,37 +1,46 @@
 import { TileView } from "./TileView"
+import { CellPos } from "../models/CellPos";
 
 const { ccclass, property } = cc._decorator
 
 @ccclass
 export class BoardView extends cc.Component {
-  @property(cc.Node) tilesRoot: cc.Node = null
-  @property(cc.Prefab) tilePrefab: cc.Prefab = null
+    public onCellClick: ((pos: CellPos) => void) | null = null;
 
-  private rows = 0
-  private cols = 0
+    @property(cc.Node)
+    private tilesRoot: cc.Node = null;
+    @property(cc.Prefab)
+    private tilePrefab: cc.Prefab = null;
 
-  public init(rows: number, cols: number): void {
-    this.rows = rows
-    this.cols = cols
-  }
+    private tileViews: TileView[][];
 
-  public render(ids: number[][], framesById: Map<number, cc.SpriteFrame>): void {
-    this.tilesRoot.removeAllChildren()
-
-    for (let r = 0; r < this.rows; r++) {
-      for (let c = 0; c < this.cols; c++) {
-        const id = ids[r][c]
-
-        const frame = framesById.get(id)
-        if (!frame) throw new Error(`BoardView: missing SpriteFrame for id=${id}`)
-
-        const node = cc.instantiate(this.tilePrefab)
-        node.parent = this.tilesRoot
-
-        const tv = node.getComponent(TileView)
-        tv.setFrame(frame)
-      }
+    public init(rows: number, cols: number): void {
+        this.tileViews = new Array(rows);
+        for(let i = 0; i < this.tileViews.length; i++){
+            this.tileViews[i] = new Array(cols);
+        }
+        this.tilesRoot.removeAllChildren()
     }
-  }
+
+    public createTile(cellPos: CellPos, frame: cc.SpriteFrame): void {
+        const node = cc.instantiate(this.tilePrefab);
+        node.parent = this.tilesRoot;
+
+        const tv = node.getComponent(TileView);
+        tv.onClick = () => { this.onCellClick(cellPos); };
+        this.tileViews[cellPos.r][cellPos.c] = tv;
+        this.setFrameTile(cellPos, frame);
+    }
+
+    public setFrameTile(cellPos: CellPos, frame: cc.SpriteFrame)
+    {
+        this.tileViews[cellPos.r][cellPos.c].setFrame(frame);
+        this.tileViews[cellPos.r][cellPos.c].setVisible(true);
+    }
+
+    public setVisibleTile(cellPos: CellPos, value: boolean)
+    {
+        this.tileViews[cellPos.r][cellPos.c].setVisible(value);
+    }
 }
 
