@@ -5,7 +5,8 @@ import { CellPos } from "../models/CellPos";
 import { delay } from "../../utils/Deley";
 
 export class BoardController {
-    private tile: BaseTile[][]
+    private tile: BaseTile[][];
+    private isBusy = false;
 
     constructor(
         public readonly rows: number,
@@ -46,17 +47,19 @@ export class BoardController {
 
     private async tryCollectTiles(cellPoss: CellPos) {
         const group = this.tile[cellPoss.r][cellPoss.c].getAffected(this.tile, cellPoss);
-        if (group.length > 1) {
-            group.forEach(cellPoss => {
-                this.boardView.setVisibleTile(cellPoss, false);
-                this.tile[cellPoss.r][cellPoss.c] = null;
-            });
-        }
-        await delay(2000);
+        if (group.length < 2 || this.isBusy)
+            return;
+        this.isBusy = true;
+        group.forEach(cellPoss => {
+            this.boardView.setVisibleTile(cellPoss, false);
+            this.tile[cellPoss.r][cellPoss.c] = null;
+        });
+        await delay(200);
         this.moveTileDown();
         this.updateViews();
-        await delay(2000);
+        await delay(200);
         this.addNewTiles();
+        this.isBusy = false;
     }
 
     private addNewTiles() {
