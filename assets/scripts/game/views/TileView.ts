@@ -4,6 +4,30 @@ export class TileView extends cc.Component {
   public onClick: (() => void) | null = null;
   @property(cc.Sprite)
   private sprite: cc.Sprite = null;
+  private spawnScaleDuration = 0.5;
+  private spawnFadeDuration = 0.5;
+  private hideScaleDuration = 0.5;
+  private hideFadeDuration = 0.5;
+  public applyConfig(cfg?: {
+    spawnScaleDuration?: number;
+    spawnFadeDuration?: number;
+    hideScaleDuration?: number;
+    hideFadeDuration?: number;
+  }): void {
+    if (!cfg) return;
+    if (typeof cfg.spawnScaleDuration === "number") {
+      this.spawnScaleDuration = cfg.spawnScaleDuration;
+    }
+    if (typeof cfg.spawnFadeDuration === "number") {
+      this.spawnFadeDuration = cfg.spawnFadeDuration;
+    }
+    if (typeof cfg.hideScaleDuration === "number") {
+      this.hideScaleDuration = cfg.hideScaleDuration;
+    }
+    if (typeof cfg.hideFadeDuration === "number") {
+      this.hideFadeDuration = cfg.hideFadeDuration;
+    }
+  }
   public setFrame(frame: cc.SpriteFrame) {
     this.sprite.spriteFrame = frame;
     this.node.active = true;
@@ -24,8 +48,10 @@ export class TileView extends cc.Component {
     this.node.stopAllActions();
     this.node.active = true;
     this.node.scale = 0;
-    const scale = cc.scaleTo(0.5, 1).easing(cc.easeBackIn());
-    const fade = cc.fadeTo(0.5, 255);
+    const scale = cc
+      .scaleTo(this.spawnScaleDuration, 1)
+      .easing(cc.easeBackIn());
+    const fade = cc.fadeTo(this.spawnFadeDuration, 255);
     const anim = cc.spawn(scale, fade);
     const seq = cc.sequence(
       anim,
@@ -39,8 +65,10 @@ export class TileView extends cc.Component {
   }
   playHide(onDone?: () => void): void {
     this.node.stopAllActions();
-    const scale = cc.scaleTo(0.5, 0.1).easing(cc.easeBackIn());
-    const fade = cc.fadeTo(0.5, 0);
+    const scale = cc
+      .scaleTo(this.hideScaleDuration, 0.1)
+      .easing(cc.easeBackIn());
+    const fade = cc.fadeTo(this.hideFadeDuration, 0);
     const anim = cc.spawn(scale, fade);
     const seq = cc.sequence(
       anim,

@@ -1,0 +1,10 @@
+{
+  "startMoves": 20,
+  "targetScore": 500,
+  "rows": 9,
+  "cols": 9,
+  "tileWidth": 95,
+  "tileHeight": 112,
+  "spacingX": 0,
+  "spacingY": -10
+}

@@ -7,9 +7,18 @@ export class HudView extends cc.Component {
   @property(cc.Node) resultOverlay: cc.Node = null;
   @property(cc.Button) restartButton: cc.Button = null;
   @property(cc.Node) startFadeOverlay: cc.Node = null;
-  @property fadeDuration: number = 0.4;
-  @property fadeDelay: number = 0.05;
+  public fadeDuration: number = 0.4;
+  public fadeDelay: number = 0.05;
   public onRestart: (() => void) | null = null;
+  public applyConfig(cfg?: { fadeDuration?: number; fadeDelay?: number }): void {
+    if (!cfg) return;
+    if (typeof cfg.fadeDuration === "number") {
+      this.fadeDuration = cfg.fadeDuration;
+    }
+    if (typeof cfg.fadeDelay === "number") {
+      this.fadeDelay = cfg.fadeDelay;
+    }
+  }
   protected onEnable(): void {
     if (this.restartButton) {
       this.restartButton.node.on(

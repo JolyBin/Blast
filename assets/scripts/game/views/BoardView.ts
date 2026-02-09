@@ -4,11 +4,8 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export class BoardView extends cc.Component {
   public onCellClick: ((pos: CellPos) => void) | null = null;
-  @property
   public spawnFallDuration: number = 0.25;
-  @property
   public spawnFadeDuration: number = 0.25;
-  @property
   public moveDuration: number = 0.2;
   @property(cc.Node)
   private tilesRoot: cc.Node = null;
@@ -20,7 +17,65 @@ export class BoardView extends cc.Component {
   private cellPrefab: cc.Prefab = null;
   private tileViews: { view: TileView; pos: cc.Node }[][];
   private syncScheduled = false;
+  private tileWidth = 95;
+  private tileHeight = 112;
+  private spacingX = 0;
+  private spacingY = 0;
+  public applyGridConfig(cfg?: {
+    tileWidth?: number;
+    tileHeight?: number;
+    spacingX?: number;
+    spacingY?: number;
+  }): void {
+    if (!cfg) return;
+    if (typeof cfg.tileWidth === "number") this.tileWidth = cfg.tileWidth;
+    if (typeof cfg.tileHeight === "number") this.tileHeight = cfg.tileHeight;
+    if (typeof cfg.spacingX === "number") this.spacingX = cfg.spacingX;
+    if (typeof cfg.spacingY === "number") this.spacingY = cfg.spacingY;
+  }
+  private tileConfig:
+    | {
+        spawnScaleDuration?: number;
+        spawnFadeDuration?: number;
+        hideScaleDuration?: number;
+        hideFadeDuration?: number;
+      }
+    | null = null;
+  public applyConfig(cfg?: {
+    spawnFallDuration?: number;
+    spawnFadeDuration?: number;
+    moveDuration?: number;
+  }): void {
+    if (!cfg) return;
+    if (typeof cfg.spawnFallDuration === "number") {
+      this.spawnFallDuration = cfg.spawnFallDuration;
+    }
+    if (typeof cfg.spawnFadeDuration === "number") {
+      this.spawnFadeDuration = cfg.spawnFadeDuration;
+    }
+    if (typeof cfg.moveDuration === "number") {
+      this.moveDuration = cfg.moveDuration;
+    }
+  }
+  public applyTileConfig(cfg?: {
+    spawnScaleDuration?: number;
+    spawnFadeDuration?: number;
+    hideScaleDuration?: number;
+    hideFadeDuration?: number;
+  }): void {
+    if (!cfg) return;
+    this.tileConfig = cfg;
+    if (!this.tileViews) return;
+    for (let r = 0; r < this.tileViews.length; r++) {
+      for (let c = 0; c < this.tileViews[r].length; c++) {
+        const entry = this.tileViews[r][c];
+        if (entry) entry.view.applyConfig(this.tileConfig);
+      }
+    }
+  }
   public init(rows: number, cols: number): void {
+    const layout = this.tilesRoot.getComponent(cc.Layout);
+    if (layout) layout.enabled = false;
     this.tileViews = new Array(rows);
     for (let i = 0; i < this.tileViews.length; i++) {
       this.tileViews[i] = new Array(cols);
@@ -28,15 +83,27 @@ export class BoardView extends cc.Component {
     this.tilesRoot.removeAllChildren();
     if (this.tilesViewRoot) this.tilesViewRoot.removeAllChildren();
     this.syncScheduled = false;
+    const gridWidth =
+      cols * this.tileWidth + (cols - 1) * this.spacingX;
+    const gridHeight =
+      rows * this.tileHeight + (rows - 1) * this.spacingY;
+    const originX = -gridWidth / 2 + this.tileWidth / 2;
+    const originY = -gridHeight / 2 + this.tileHeight / 2;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const cell = cc.instantiate(this.cellPrefab);
         cell.parent = this.tilesRoot;
         const node = cc.instantiate(this.tilePrefab);
         node.parent = this.tilesViewRoot ? this.tilesViewRoot : this.node;
-        node.width = cell.width;
-        node.height = cell.height;
+        cell.width = this.tileWidth;
+        cell.height = this.tileHeight;
+        node.width = this.tileWidth;
+        node.height = this.tileHeight;
+        const x = originX + c * (this.tileWidth + this.spacingX);
+        const y = originY + r * (this.tileHeight + this.spacingY);
+        cell.setPosition(x, y);
         const tv = node.getComponent(TileView);
+        if (this.tileConfig) tv.applyConfig(this.tileConfig);
         this.bindClick(tv, { r, c });
         this.tileViews[r][c] = { view: tv, pos: cell };
       }
@@ -255,8 +322,6 @@ export class BoardView extends cc.Component {
     }, 0);
   }
   private syncNow(): void {
-    const layout = this.tilesRoot.getComponent(cc.Layout);
-    if (layout) layout.updateLayout();
     this.syncAllPositions();
     this.refreshRenderOrder();
   }

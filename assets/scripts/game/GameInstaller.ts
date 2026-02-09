@@ -2,6 +2,8 @@
 import { TileCatalogDTO, SuperRulesDTO } from "./configs/TileConfig";
 import { TileRegistry } from "./configs/TileRegistry";
 import { BoostersConfig } from "./configs/BoosterConfig";
+import { UIConfig } from "./configs/UIConfig";
+import { GameplayConfig } from "./configs/GameplayConfig";
 import { BoardController } from "./controllers/BoardController";
 import { SuperTileRules } from "./controllers/SuperTileRules";
 import { TileFactory } from "./controllers/TileFactory";
@@ -16,19 +18,29 @@ export class GameInstaller extends cc.Component {
   @property(BoardView) boardView: BoardView = null;
   @property(HudView) hudView: HudView = null;
   @property(BoosterView) boosterView: BoosterView = null;
-  @property startMoves: number = 30;
-  @property targetScore: number = 500;
-  @property rows: number = 8;
-  @property cols: number = 8;
+  public startMoves: number = 30;
+  public targetScore: number = 500;
+  public rows: number = 8;
+  public cols: number = 8;
   @property catalogPath: string = "configs/tile_catalog";
   @property superRulesPath: string = "configs/super_rules";
   @property boostersPath: string = "configs/boosters";
+  @property uiConfigPath: string = "configs/ui";
+  @property gameplayConfigPath: string = "configs/gameplay";
   async start(): Promise<void> {
     const catalogDto = await JsonLoader.load<TileCatalogDTO>(this.catalogPath);
     const registry = new TileRegistry(catalogDto.tiles);
     const superRulesDto = await JsonLoader.load<SuperRulesDTO>(
       this.superRulesPath,
     );
+    const uiConfig = await JsonLoader.load<UIConfig>(this.uiConfigPath);
+    const gameplayConfig = await JsonLoader.load<GameplayConfig>(
+      this.gameplayConfigPath,
+    );
+    this.startMoves = gameplayConfig.startMoves;
+    this.targetScore = gameplayConfig.targetScore;
+    this.rows = gameplayConfig.rows;
+    this.cols = gameplayConfig.cols;
     const spawnTiles = registry.getSpawnTiles();
     const superTileRules = new SuperTileRules(superRulesDto);
     const framesById = new Map<number, cc.SpriteFrame>();
@@ -47,6 +59,19 @@ export class GameInstaller extends cc.Component {
         const scene = cc.director.getScene();
         if (scene) cc.director.loadScene(scene.name);
       };
+    }
+    if (this.boardView) {
+      this.boardView.applyGridConfig({
+        tileWidth: gameplayConfig.tileWidth,
+        tileHeight: gameplayConfig.tileHeight,
+        spacingX: gameplayConfig.spacingX,
+        spacingY: gameplayConfig.spacingY,
+      });
+      this.boardView.applyConfig(uiConfig?.board);
+      this.boardView.applyTileConfig(uiConfig?.tile);
+    }
+    if (this.hudView) {
+      this.hudView.applyConfig(uiConfig?.hud);
     }
     const controller = new BoardController(
       this.rows,
