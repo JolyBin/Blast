@@ -134,6 +134,37 @@ export class BoardView extends cc.Component {
         entry.view.node.scale = selected ? 1.15 : 1;
     }
 
+    public getTileView(pos: CellPos): TileView | null {
+        const entry = this.tileViews[pos.r][pos.c];
+        return entry ? entry.view : null;
+    }
+
+    public setTileView(pos: CellPos, view: TileView): void {
+        const entry = this.tileViews[pos.r][pos.c];
+        if (!entry) return;
+        entry.view = view;
+        this.bindClick(view, pos);
+    }
+
+    public animateViewsToPositions(assignments: { view: TileView; to: CellPos }[], duration: number = this.moveDuration): Promise<void> {
+        if (assignments.length === 0) return Promise.resolve();
+        return Promise.all(assignments.map(a => {
+            const node = a.view.node;
+            const target = this.getCellLocalPos(a.to);
+            return new Promise<void>(resolve => {
+                node.stopAllActions();
+                node.active = true;
+                node.opacity = 255;
+                node.scale = 1;
+                const move = cc.moveTo(duration, target);
+                const seq = cc.sequence(move, cc.callFunc(() => resolve()));
+                node.runAction(seq);
+            });
+        })).then(() => {
+            this.refreshRenderOrder();
+        });
+    }
+
     public moveTilesAnimated(moves: { from: CellPos; to: CellPos }[], duration: number = this.moveDuration): Promise<void> {
         if (moves.length === 0) return Promise.resolve();
         return Promise.all(moves.map(m => this.moveTileAnimated(m.from, m.to, duration))).then(() => {

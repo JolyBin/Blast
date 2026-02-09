@@ -64,7 +64,7 @@ export class GameInstaller extends cc.Component {
       this.targetScore,
       progress
     );
-    controller.start()
+    await controller.start()
 
     const booster = new BoosterController(
       controller,

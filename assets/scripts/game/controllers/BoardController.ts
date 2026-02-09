@@ -6,6 +6,7 @@ import { delay } from "../../utils/Utils";
 import { SuperTileRules } from "./SuperTileRules";
 import { NormalTile } from "../models/NormalTile";
 import { ProgressController } from "./ProgressController";
+import { TileView } from "../views/TileView";
 
 export class BoardController {
     private tiles: BaseTile[][];
@@ -14,6 +15,7 @@ export class BoardController {
     private uniqSuperTiles: UniqueCellPosSet
     private uniqTiles: UniqueCellPosSet
     private progress: ProgressController;
+    private reshufflesLeft = 3;
 
     constructor(
         public readonly rows: number,
@@ -30,11 +32,12 @@ export class BoardController {
         this.progress = progress;
     }
 
-    public start() {
+    public async start() {
         this.isGameOver = false;
+        this.reshufflesLeft = 3;
         this.progress.init(this.startMoves, this.targetScore);
         this.generate();
-        if (!this.hasAnyMove()) {
+        if (await this.tryShuffleToGetMove()) {
             this.endGame(false);
             return;
         }
@@ -146,13 +149,8 @@ export class BoardController {
             return;
         }
 
-        if (!this.hasAnyMove()) {
-            this.endGame(false);
-            this.isBusy = false;
-            return;
-        }
-
-        this.isBusy = false
+        if (!await this.afterBoardAction()) return;
+        this.isBusy = false;
     }
 
     public getTileId(pos: CellPos): number | null {
@@ -169,6 +167,7 @@ export class BoardController {
         this.tiles[a.r][a.c] = tb;
         this.tiles[b.r][b.c] = ta;
         await this.boardView.swapTilesAnimated(a, b);
+        if (!await this.afterBoardAction()) return;
         this.isBusy = false;
     }
 
@@ -201,11 +200,7 @@ export class BoardController {
             this.isBusy = false;
             return;
         }
-        if (!this.hasAnyMove()) {
-            this.endGame(false);
-            this.isBusy = false;
-            return;
-        }
+        if (!await this.afterBoardAction()) return;
         this.isBusy = false;
     }
 
@@ -263,6 +258,69 @@ export class BoardController {
         return false;
     }
 
+    private async afterBoardAction(): Promise<boolean> {
+        if (this.checkEndConditions()) {
+            this.isBusy = false;
+            return false;
+        }
+        if (await this.tryShuffleToGetMove()) {
+            this.endGame(false);
+            this.isBusy = false;
+            return false;
+        }
+        return true;
+    }
+
+    private async tryShuffleToGetMove(): Promise<boolean> {
+        if (!this.hasAnyMove()) {
+            this.reshufflesLeft -= 1;
+            let newPos = this.shuffleTilesAnimated();
+            let checkLoop = 1000;
+            while (!this.hasAnyMove() && checkLoop > 0) {
+                checkLoop--;
+                newPos = this.shuffleTilesAnimated();
+            }
+
+            await this.boardView.animateViewsToPositions(newPos);
+        }
+        return this.reshufflesLeft < 0;
+    }
+
+    private shuffleTilesAnimated(): { view: TileView, to: CellPos }[] {
+        const positions: CellPos[] = [];
+        const tiles: BaseTile[] = [];
+        const views: TileView[] = [];
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                positions.push({ r, c });
+                tiles.push(this.tiles[r][c]);
+                views.push(this.boardView.getTileView({ r, c }));
+            }
+        }
+
+        const indices = positions.map((_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = indices[i];
+            indices[i] = indices[j];
+            indices[j] = tmp;
+        }
+
+        const assignments: { view: TileView; to: CellPos }[] = [];
+        for (let i = 0; i < positions.length; i++) {
+            const fromIndex = indices[i];
+            const pos = positions[i];
+            const tile = tiles[fromIndex];
+            const view = views[fromIndex];
+            this.tiles[pos.r][pos.c] = tile;
+            if (view) {
+                this.boardView.setTileView(pos, view);
+                assignments.push({ view, to: pos });
+            }
+        }
+        return assignments;
+    }
+
     private endGame(isWin: boolean): void {
         this.isGameOver = true;
         this.boardView.onCellClick = null;
@@ -274,42 +332,11 @@ export class BoardController {
             for (let c = 0; c < this.cols; c++) {
                 const tile = this.tiles[r][c];
                 if (!tile) continue;
-                if (!(tile instanceof NormalTile)) return true;
-            }
-        }
-
-        const visited: boolean[][] = new Array(this.rows);
-        for (let r = 0; r < this.rows; r++) {
-            visited[r] = new Array(this.cols).fill(false);
-        }
-
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                if (visited[r][c]) continue;
-                const tile = this.tiles[r][c];
-                if (!tile || !(tile instanceof NormalTile)) continue;
-                const count = this.countGroupSize(r, c, tile.id, visited);
-                if (count >= this.superTileRules.minGroupToDestroy) return true;
+                const count = tile.getAffected(this.tiles, { r, c }).length;
+                if (count >= this.superTileRules.minGroupToDestroy)
+                    return true;
             }
         }
         return false;
-    }
-
-    private countGroupSize(sr: number, sc: number, id: number, visited: boolean[][]): number {
-        let count = 0;
-        const stack: CellPos[] = [{ r: sr, c: sc }];
-        while (stack.length > 0) {
-            const p = stack.pop();
-            if (visited[p.r][p.c]) continue;
-            visited[p.r][p.c] = true;
-            const tile = this.tiles[p.r][p.c];
-            if (!tile || !(tile instanceof NormalTile) || tile.id !== id) continue;
-            count++;
-            if (p.r > 0) stack.push({ r: p.r - 1, c: p.c });
-            if (p.r + 1 < this.rows) stack.push({ r: p.r + 1, c: p.c });
-            if (p.c > 0) stack.push({ r: p.r, c: p.c - 1 });
-            if (p.c + 1 < this.cols) stack.push({ r: p.r, c: p.c + 1 });
-        }
-        return count;
     }
 }
