@@ -13,7 +13,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "Portal Booster",
+    "_name": "Bomp Booster",
     "_objFlags": 0,
     "_parent": null,
     "_children": [
@@ -34,7 +34,7 @@
       }
     ],
     "_prefab": {
-      "__id__": 18
+      "__id__": 17
     },
     "_opacity": 255,
     "_color": {
@@ -58,7 +58,7 @@
       "__type__": "TypedArray",
       "ctor": "Float64Array",
       "array": [
-        -175,
+        175,
         -65,
         0,
         0,
@@ -303,7 +303,7 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_spriteFrame": {
-      "__uuid__": "0a66aa83-4185-4c07-8979-f2ca6e22f4d7"
+      "__uuid__": "dd0c38ce-8117-47e3-8e5e-aa1d7f20e48e"
     },
     "_type": 0,
     "_sizeMode": 0,
@@ -590,11 +590,7 @@
     "_grayMaterial": null,
     "duration": 0.1,
     "zoomScale": 1.2,
-    "clickEvents": [
-      {
-        "__id__": 17
-      }
-    ],
+    "clickEvents": [],
     "_N$interactable": true,
     "_N$enableAutoGrayEffect": false,
     "_N$transition": 0,
@@ -649,14 +645,6 @@
     "_N$disabledSprite": null,
     "_N$target": null,
     "_id": ""
-  },
-  {
-    "__type__": "cc.ClickEvent",
-    "target": null,
-    "component": "",
-    "_componentId": "",
-    "handler": "",
-    "customEventData": ""
   },
   {
     "__type__": "cc.PrefabInfo",
