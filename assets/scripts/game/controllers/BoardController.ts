@@ -266,7 +266,7 @@ export class BoardController {
     private endGame(isWin: boolean): void {
         this.isGameOver = true;
         this.boardView.onCellClick = null;
-        this.progress.showResult(isWin ? "WIN" : "LOSE");
+        this.progress.showResult(isWin ? "Победа" : "Поражение");
     }
 
     private hasAnyMove(): boolean {

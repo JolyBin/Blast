@@ -46,6 +46,12 @@ export class GameInstaller extends cc.Component {
     const tileFactory: TileFactory = new TileFactory(registry);
 
     const progress = new ProgressController(this.hudView ?? undefined);
+    if (this.hudView) {
+      this.hudView.onRestart = () => {
+        const scene = cc.director.getScene();
+        if (scene) cc.director.loadScene(scene.name);
+      };
+    }
     const controller = new BoardController(
       this.rows,
       this.cols,
