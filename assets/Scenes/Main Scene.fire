@@ -87,10 +87,10 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 105
+        "__id__": 148
       },
       {
-        "__id__": 106
+        "__id__": 149
       }
     ],
     "_prefab": null,
@@ -514,13 +514,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 102
-      },
-      {
-        "__id__": 103
-      },
-      {
-        "__id__": 104
+        "__id__": 147
       }
     ],
     "_prefab": null,
@@ -1399,7 +1393,7 @@
     "startFadeOverlay": {
       "__id__": 46
     },
-    "_id": "b42tkl0ZpLcqPVb2Tm33X3"
+    "_id": "1dQL5eR5FIfq8cYOm7GrOH"
   },
   {
     "__type__": "cc.Label",
