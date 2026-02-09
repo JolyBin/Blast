@@ -1,13 +1,12 @@
-﻿import { SuperRulesDTO } from "./TileConfig";
-export class SuperRulesLoader {
-  static load(pathInResources: string): Promise<SuperRulesDTO> {
+export class JsonLoader {
+  static load<T>(pathInResources: string): Promise<T> {
     return new Promise((resolve, reject) => {
       cc.resources.load(
         pathInResources,
         cc.JsonAsset,
         (err, asset: cc.JsonAsset) => {
           if (err) return reject(err);
-          resolve(asset.json as SuperRulesDTO);
+          resolve(asset.json as T);
         },
       );
     });

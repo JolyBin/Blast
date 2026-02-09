@@ -1,6 +1,7 @@
-﻿import { SuperRulesLoader } from "./configs/SuperRulesLoader";
-import { BoosterConfigLoader } from "./configs/BoosterConfigLoader";
-import { TileCatalogLoader } from "./configs/TileCatalogLoader";
+﻿import { JsonLoader } from "./configs/JsonLoader";
+import { TileCatalogDTO, SuperRulesDTO } from "./configs/TileConfig";
+import { TileRegistry } from "./configs/TileRegistry";
+import { BoostersConfig } from "./configs/BoosterConfig";
 import { BoardController } from "./controllers/BoardController";
 import { SuperTileRules } from "./controllers/SuperTileRules";
 import { TileFactory } from "./controllers/TileFactory";
@@ -23,8 +24,11 @@ export class GameInstaller extends cc.Component {
   @property superRulesPath: string = "configs/super_rules";
   @property boostersPath: string = "configs/boosters";
   async start(): Promise<void> {
-    const registry = await TileCatalogLoader.loadRegistry(this.catalogPath);
-    const superRulesDto = await SuperRulesLoader.load(this.superRulesPath);
+    const catalogDto = await JsonLoader.load<TileCatalogDTO>(this.catalogPath);
+    const registry = new TileRegistry(catalogDto.tiles);
+    const superRulesDto = await JsonLoader.load<SuperRulesDTO>(
+      this.superRulesPath,
+    );
     const spawnTiles = registry.getSpawnTiles();
     const superTileRules = new SuperTileRules(superRulesDto);
     const framesById = new Map<number, cc.SpriteFrame>();
@@ -33,7 +37,9 @@ export class GameInstaller extends cc.Component {
       const frame = await this.loadSpriteFrame(tile.sprite);
       framesById.set(id, frame);
     }
-    const boostersConfig = await BoosterConfigLoader.load(this.boostersPath);
+    const boostersConfig = await JsonLoader.load<BoostersConfig>(
+      this.boostersPath,
+    );
     const tileFactory: TileFactory = new TileFactory(registry);
     const progress = new ProgressController(this.hudView ?? undefined);
     if (this.hudView) {

@@ -8,7 +8,7 @@ export class TileView extends cc.Component {
     this.sprite.spriteFrame = frame;
     this.node.active = true;
   }
-  public Hide() {
+  public hide() {
     this.node.active = false;
   }
   public onEnable() {

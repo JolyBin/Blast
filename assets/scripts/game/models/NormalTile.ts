@@ -2,22 +2,27 @@
 import { CellPos, UniqueCellPosSet } from "./CellPos";
 export class NormalTile extends BaseTile {
   private uniqCell: UniqueCellPosSet;
-  public getAffected(allTiles: BaseTile[][], currentTile: CellPos): CellPos[] {
+  public getAffected(
+    allTiles: (BaseTile | null)[][],
+    currentTile: CellPos,
+  ): CellPos[] {
     this.uniqCell = new UniqueCellPosSet(allTiles[0].length);
     return this.getNeighbours(allTiles, currentTile);
   }
   private getNeighbours(
-    allTiles: BaseTile[][],
+    allTiles: (BaseTile | null)[][],
     currentTilePos: CellPos,
   ): CellPos[] {
     const result: CellPos[] = [];
+    const current = allTiles[currentTilePos.r][currentTilePos.c];
+    if (!current) return result;
     this.uniqCell.add(currentTilePos);
     result.push(currentTilePos);
     if (
       currentTilePos.r - 1 >= 0 &&
       !this.uniqCell.has({ r: currentTilePos.r - 1, c: currentTilePos.c }) &&
-      allTiles[currentTilePos.r][currentTilePos.c].id ===
-        allTiles[currentTilePos.r - 1][currentTilePos.c].id
+      allTiles[currentTilePos.r - 1][currentTilePos.c] &&
+      current.id === allTiles[currentTilePos.r - 1][currentTilePos.c].id
     ) {
       result.push(
         ...this.getNeighbours(allTiles, {
@@ -29,8 +34,8 @@ export class NormalTile extends BaseTile {
     if (
       currentTilePos.r + 1 < allTiles.length &&
       !this.uniqCell.has({ r: currentTilePos.r + 1, c: currentTilePos.c }) &&
-      allTiles[currentTilePos.r][currentTilePos.c].id ===
-        allTiles[currentTilePos.r + 1][currentTilePos.c].id
+      allTiles[currentTilePos.r + 1][currentTilePos.c] &&
+      current.id === allTiles[currentTilePos.r + 1][currentTilePos.c].id
     ) {
       result.push(
         ...this.getNeighbours(allTiles, {
@@ -42,8 +47,8 @@ export class NormalTile extends BaseTile {
     if (
       currentTilePos.c - 1 >= 0 &&
       !this.uniqCell.has({ r: currentTilePos.r, c: currentTilePos.c - 1 }) &&
-      allTiles[currentTilePos.r][currentTilePos.c].id ===
-        allTiles[currentTilePos.r][currentTilePos.c - 1].id
+      allTiles[currentTilePos.r][currentTilePos.c - 1] &&
+      current.id === allTiles[currentTilePos.r][currentTilePos.c - 1].id
     ) {
       result.push(
         ...this.getNeighbours(allTiles, {
@@ -55,8 +60,8 @@ export class NormalTile extends BaseTile {
     if (
       currentTilePos.c + 1 < allTiles[currentTilePos.r].length &&
       !this.uniqCell.has({ r: currentTilePos.r, c: currentTilePos.c + 1 }) &&
-      allTiles[currentTilePos.r][currentTilePos.c].id ===
-        allTiles[currentTilePos.r][currentTilePos.c + 1].id
+      allTiles[currentTilePos.r][currentTilePos.c + 1] &&
+      current.id === allTiles[currentTilePos.r][currentTilePos.c + 1].id
     ) {
       result.push(
         ...this.getNeighbours(allTiles, {

@@ -16,13 +16,15 @@ export class TileFactory {
         return new NormalTile(tileConfig.id);
       case "bomb":
         // return new BombTile(def.id)
-        return new BombTile(tileConfig.id, tileConfig.radius); // РІСЂРµРјРµРЅРЅРѕ
+        return new BombTile(tileConfig.id, tileConfig.radius);
       case "rocketRow":
         // return new RocketRowTile(def.id)
-        return new RocketRowTile(tileConfig.id); // РІСЂРµРјРµРЅРЅРѕ
+        return new RocketRowTile(tileConfig.id);
       case "rocketCol":
         // return new RocketColTile(def.id)
         return new RocketColTile(tileConfig.id);
+      default:
+        throw new Error(`Unknown tile kind: ${(tileConfig as any).kind}`);
     }
   }
 }

@@ -27,7 +27,7 @@ export interface TileCatalogDTO {
 }
 export interface SuperRuleDTO {
   minGroup: number;
-  spawnIds: number[]; // ["rocketRow","rocketCol"] РёР»Рё ["bomb"]
+  spawnIds: number[]; // ["rocketRow","rocketCol"] or ["bomb"]
 }
 export interface SuperRulesDTO {
   minGroupToDestroy: number;

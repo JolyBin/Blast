@@ -8,7 +8,10 @@ export class BombTile extends BaseTile {
   ) {
     super(id);
   }
-  public getAffected(allTiles: BaseTile[][], currentTile: CellPos): CellPos[] {
+  public getAffected(
+    allTiles: (BaseTile | null)[][],
+    currentTile: CellPos,
+  ): CellPos[] {
     const rows = allTiles.length;
     const cols = rows > 0 ? allTiles[0].length : 0;
     const r0 = clamp(currentTile.r - this.radius, 0, rows - 1);

@@ -2,7 +2,7 @@
 export abstract class BaseTile {
   constructor(public readonly id: number) {}
   public abstract getAffected(
-    allTiles: BaseTile[][],
+    allTiles: (BaseTile | null)[][],
     currentTile: CellPos,
   ): CellPos[];
 }
