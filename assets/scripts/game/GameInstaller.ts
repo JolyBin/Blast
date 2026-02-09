@@ -76,6 +76,7 @@ export class GameInstaller extends cc.Component {
       this.boosterView.onToggle = (id) => booster.toggle(id);
     }
     this.boardView.onCellClick = (pos) => { booster.handleCellClick(pos); };
+    this.hudView?.playStartFade();
   }
 
   private loadSpriteFrame(pathInResources: string): Promise<cc.SpriteFrame> {

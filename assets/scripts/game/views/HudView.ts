@@ -7,6 +7,9 @@ export class HudView extends cc.Component {
   @property(cc.Label) resultLabel: cc.Label = null
   @property(cc.Node) resultOverlay: cc.Node = null
   @property(cc.Button) restartButton: cc.Button = null
+  @property(cc.Node) startFadeOverlay: cc.Node = null
+  @property fadeDuration: number = 0.4
+  @property fadeDelay: number = 0.05
 
   public onRestart: (() => void) | null = null
 
@@ -28,7 +31,7 @@ export class HudView extends cc.Component {
 
   public setMoves(moves: number): void {
     if (this.movesLabel) this.movesLabel.string = `${moves}`
-  }Ы
+  }
 
   public showResult(text: string): void {
     if (this.resultLabel) this.resultLabel.string = text
@@ -39,6 +42,19 @@ export class HudView extends cc.Component {
   public hideResult(): void {
     if (this.resultLabel) this.resultLabel.node.active = false
     if (this.resultOverlay) this.resultOverlay.active = false
+  }
+
+  public playStartFade(): void {
+    if (!this.startFadeOverlay) return;
+    const node = this.startFadeOverlay;
+    node.stopAllActions();
+    node.active = true;
+    node.opacity = 255;
+    cc.tween(node)
+      .delay(this.fadeDelay)
+      .to(this.fadeDuration, { opacity: 0 })
+      .call(() => { node.active = false; })
+      .start();
   }
 
   public restart(): void {

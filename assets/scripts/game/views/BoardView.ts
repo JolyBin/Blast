@@ -51,6 +51,7 @@ export class BoardView extends cc.Component {
             }
         }
 
+        this.syncNow();
         this.requestSyncPositions();
     }
 
@@ -184,7 +185,8 @@ export class BoardView extends cc.Component {
         if (!entry) return cc.v2(0, 0);
         const cellNode = entry.pos;
         const world = cellNode.parent.convertToWorldSpaceAR(cellNode.position);
-        const local = this.node.convertToNodeSpaceAR(world);
+        const viewParent = entry.view.node.parent ?? this.node;
+        const local = viewParent.convertToNodeSpaceAR(world);
         return cc.v2(local.x, local.y);
     }
 
@@ -227,11 +229,15 @@ export class BoardView extends cc.Component {
         this.syncScheduled = true;
         this.scheduleOnce(() => {
             this.syncScheduled = false;
-            const layout = this.tilesRoot.getComponent(cc.Layout);
-            if (layout) layout.updateLayout();
-            this.syncAllPositions();
-            this.refreshRenderOrder();
+            this.syncNow();
         }, 0);
+    }
+
+    private syncNow(): void {
+        const layout = this.tilesRoot.getComponent(cc.Layout);
+        if (layout) layout.updateLayout();
+        this.syncAllPositions();
+        this.refreshRenderOrder();
     }
 
     private syncAllPositions(): void {
