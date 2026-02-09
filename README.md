@@ -10,4 +10,4 @@
 
 ### Web Build
 Deployed on GitHub Pages:
-Soon
+https://jolybin.github.io/Blast/
