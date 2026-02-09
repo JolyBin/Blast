@@ -6,5 +6,7 @@
   "tileWidth": 95,
   "tileHeight": 112,
   "spacingX": 0,
-  "spacingY": -10
+  "spacingY": -10,
+  "scorePerTile": 10,
+  "reshuffles": 3
 }
