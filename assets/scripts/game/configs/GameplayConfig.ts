@@ -7,4 +7,6 @@ export interface GameplayConfig {
   tileHeight: number;
   spacingX: number;
   spacingY: number;
+  scorePerTile: number;
+  reshuffles: number;
 }

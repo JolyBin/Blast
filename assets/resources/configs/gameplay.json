@@ -1,10 +1,12 @@
 {
   "startMoves": 20,
   "targetScore": 500,
-  "rows": 9,
-  "cols": 9,
+  "rows": 3,
+  "cols": 3,
   "tileWidth": 95,
   "tileHeight": 112,
   "spacingX": 0,
-  "spacingY": -10
+  "spacingY": -10,
+  "scorePerTile": 10,
+  "reshuffles": 3
 }
