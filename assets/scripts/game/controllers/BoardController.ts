@@ -38,7 +38,19 @@ export class BoardController {
             this.endGame(false);
             return;
         }
-        this.boardView.onCellClick = (cellPos) => { this.tryCollectTiles(cellPos) };
+        this.boardView.onCellClick = null;
+    }
+
+    public isBusyOrOver(): boolean {
+        return this.isBusy || this.isGameOver;
+    }
+
+    public async handleBoardClick(cellPos: CellPos): Promise<void> {
+        await this.tryCollectTiles(cellPos);
+    }
+
+    public setSelection(pos: CellPos, selected: boolean): void {
+        this.boardView.setSelected(pos, selected);
     }
 
     public stop() {
@@ -141,6 +153,60 @@ export class BoardController {
         }
 
         this.isBusy = false
+    }
+
+    public getTileId(pos: CellPos): number | null {
+        const t = this.tiles[pos.r]?.[pos.c];
+        return t ? t.id : null;
+    }
+
+    public async swapTiles(a: CellPos, b: CellPos): Promise<void> {
+        if (this.isBusy || this.isGameOver) return;
+        const ta = this.tiles[a.r]?.[a.c];
+        const tb = this.tiles[b.r]?.[b.c];
+        if (!ta || !tb) return;
+        this.isBusy = true;
+        this.tiles[a.r][a.c] = tb;
+        this.tiles[b.r][b.c] = ta;
+        await this.boardView.swapTilesAnimated(a, b);
+        this.isBusy = false;
+    }
+
+    public async activateSuperAt(pos: CellPos, superId: number): Promise<void> {
+        if (this.isBusy || this.isGameOver) return;
+        this.isBusy = true;
+        const superTile = this.tileFactory.createTile(superId);
+        this.tiles[pos.r][pos.c] = superTile;
+        this.boardView.createTileInPlace(pos, this.framesById.get(superId));
+
+        let group = superTile.getAffected(this.tiles, pos);
+        if (group.length === 0) {
+            this.isBusy = false;
+            return;
+        }
+
+        await this.boardView.hideTilesAnimated(group)
+        this.addScore(group.length);
+        group.forEach(p => {
+            this.tiles[p.r][p.c] = null
+        })
+
+        const moves = this.moveTileDown()
+        await this.boardView.moveTilesAnimated(moves)
+        let newTiles = this.addNewTiles();
+        this.boardView.renderTilesAnimated(newTiles);
+        await delay(80)
+
+        if (this.checkEndConditions()) {
+            this.isBusy = false;
+            return;
+        }
+        if (!this.hasAnyMove()) {
+            this.endGame(false);
+            this.isBusy = false;
+            return;
+        }
+        this.isBusy = false;
     }
 
 

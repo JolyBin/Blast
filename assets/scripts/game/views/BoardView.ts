@@ -16,6 +16,8 @@ export class BoardView extends cc.Component {
 
     @property(cc.Node)
     private tilesRoot: cc.Node = null;
+    @property(cc.Node)
+    private tilesViewRoot: cc.Node = null;
     @property(cc.Prefab)
     private tilePrefab: cc.Prefab = null;
     @property(cc.Prefab)
@@ -30,6 +32,7 @@ export class BoardView extends cc.Component {
             this.tileViews[i] = new Array(cols);
         }
         this.tilesRoot.removeAllChildren();
+        if (this.tilesViewRoot) this.tilesViewRoot.removeAllChildren();
         this.syncScheduled = false;
 
         for (let r = 0; r < rows; r++) {
@@ -38,7 +41,7 @@ export class BoardView extends cc.Component {
                 cell.parent = this.tilesRoot;
 
                 const node = cc.instantiate(this.tilePrefab);
-                node.parent = this.node;
+                node.parent = this.tilesViewRoot ? this.tilesViewRoot : this.node;
                 node.width = cell.width;
                 node.height = cell.height;
 
@@ -124,9 +127,49 @@ export class BoardView extends cc.Component {
         return Promise.all(cells.map(p => this.hideTileAnimated(p))).then(() => { })
     }
 
+    public setSelected(pos: CellPos, selected: boolean): void {
+        const entry = this.tileViews[pos.r][pos.c];
+        if (!entry) return;
+        entry.view.node.scale = selected ? 1.15 : 1;
+    }
+
     public moveTilesAnimated(moves: { from: CellPos; to: CellPos }[], duration: number = this.moveDuration): Promise<void> {
         if (moves.length === 0) return Promise.resolve();
-        return Promise.all(moves.map(m => this.moveTileAnimated(m.from, m.to, duration))).then(() => { });
+        return Promise.all(moves.map(m => this.moveTileAnimated(m.from, m.to, duration))).then(() => {
+            this.refreshRenderOrder();
+        });
+    }
+
+    public swapTilesAnimated(a: CellPos, b: CellPos, duration: number = this.moveDuration): Promise<void> {
+        const aEntry = this.tileViews[a.r][a.c];
+        const bEntry = this.tileViews[b.r][b.c];
+        if (!aEntry || !bEntry) return Promise.resolve();
+
+        const aView = aEntry.view;
+        const bView = bEntry.view;
+        aEntry.view = bView;
+        bEntry.view = aView;
+        this.bindClick(aEntry.view, a);
+        this.bindClick(bEntry.view, b);
+
+        const aPos = this.getCellLocalPos(a);
+        const bPos = this.getCellLocalPos(b);
+
+        return new Promise<void>(resolve => {
+            const aNode = aEntry.view.node;
+            const bNode = bEntry.view.node;
+            aNode.stopAllActions();
+            bNode.stopAllActions();
+            aNode.active = true;
+            bNode.active = true;
+            const moveA = cc.moveTo(duration, aPos);
+            const moveB = cc.moveTo(duration, bPos);
+            const done = cc.callFunc(() => resolve());
+            aNode.runAction(moveA);
+            bNode.runAction(cc.sequence(moveB, done));
+        }).then(() => {
+            this.refreshRenderOrder();
+        });
     }
 
     private setPosition(pos: CellPos): void {
@@ -144,6 +187,8 @@ export class BoardView extends cc.Component {
         const local = this.node.convertToNodeSpaceAR(world);
         return cc.v2(local.x, local.y);
     }
+
+
 
     private moveTileAnimated(from: CellPos, to: CellPos, duration: number): Promise<void> {
         const fromEntry = this.tileViews[from.r][from.c];
@@ -185,6 +230,7 @@ export class BoardView extends cc.Component {
             const layout = this.tilesRoot.getComponent(cc.Layout);
             if (layout) layout.updateLayout();
             this.syncAllPositions();
+            this.refreshRenderOrder();
         }, 0);
     }
 
@@ -194,6 +240,21 @@ export class BoardView extends cc.Component {
                 if (this.tileViews[r][c]) {
                     this.setPosition({ r, c });
                 }
+            }
+        }
+    }
+
+    private refreshRenderOrder(): void {
+        const rows = this.tileViews.length;
+        if (!rows) return;
+        const cols = this.tileViews[0]?.length ?? 1;
+        for (let r = 0; r < rows; r++) {
+            const row = this.tileViews[r];
+            for (let c = 0; c < row.length; c++) {
+                const entry = row[c];
+                if (!entry) continue;
+                const index = r * cols + c;
+                entry.view.node.setSiblingIndex(index);
             }
         }
     }

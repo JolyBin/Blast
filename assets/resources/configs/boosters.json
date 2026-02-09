@@ -1,0 +1,6 @@
+{
+  "boosters": [
+    { "id": "swap", "kind": "swap", "charges": 5 },
+    { "id": "super_bomb", "kind": "super", "charges": 5, "superTileId": 7 }
+  ]
+}
