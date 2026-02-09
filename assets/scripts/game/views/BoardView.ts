@@ -67,6 +67,7 @@ export class BoardView extends cc.Component {
         entry.view.setFrame(frame);
         entry.view.node.active = true;
         entry.view.node.opacity = 255;
+        entry.view.node.scale = 1;
         this.setPosition(cellPos);
     }
 
@@ -169,6 +170,7 @@ export class BoardView extends cc.Component {
             viewNode.stopAllActions();
             viewNode.active = true;
             viewNode.opacity = 255;
+            viewNode.scale = 1;
             const move = cc.moveTo(duration, targetPos);
             const seq = cc.sequence(move, cc.callFunc(() => resolve()));
             viewNode.runAction(seq);

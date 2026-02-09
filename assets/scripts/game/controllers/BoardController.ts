@@ -5,12 +5,15 @@ import { CellPos, UniqueCellPosSet } from "../models/CellPos";
 import { delay } from "../../utils/Utils";
 import { SuperTileRules } from "./SuperTileRules";
 import { NormalTile } from "../models/NormalTile";
+import { ProgressController } from "./ProgressController";
 
 export class BoardController {
     private tiles: BaseTile[][];
     private isBusy = false;
+    private isGameOver = false;
     private uniqSuperTiles: UniqueCellPosSet
     private uniqTiles: UniqueCellPosSet
+    private progress: ProgressController;
 
     constructor(
         public readonly rows: number,
@@ -19,11 +22,22 @@ export class BoardController {
         private readonly tileFactory: TileFactory,
         private readonly superTileRules: SuperTileRules,
         private readonly boardView: BoardView,
-        private readonly framesById: Map<number, cc.SpriteFrame>
-    ) { }
+        private readonly framesById: Map<number, cc.SpriteFrame>,
+        private readonly startMoves: number,
+        private readonly targetScore: number,
+        progress: ProgressController
+    ) {
+        this.progress = progress;
+    }
 
     public start() {
+        this.isGameOver = false;
+        this.progress.init(this.startMoves, this.targetScore);
         this.generate();
+        if (!this.hasAnyMove()) {
+            this.endGame(false);
+            return;
+        }
         this.boardView.onCellClick = (cellPos) => { this.tryCollectTiles(cellPos) };
     }
 
@@ -62,18 +76,25 @@ export class BoardController {
     }
 
     private async tryCollectTiles(cellPoss: CellPos) {
-        if (this.isBusy) return
+        if (this.isBusy || this.isGameOver) return
 
-        let group = this.tiles[cellPoss.r][cellPoss.c].getAffected(this.tiles, cellPoss)
+        const clickedTile = this.tiles[cellPoss.r][cellPoss.c];
+        let group = clickedTile.getAffected(this.tiles, cellPoss)
 
-        if (group.length < this.superTileRules.minGroupToDestroy)
+        const isNormal = clickedTile instanceof NormalTile;
+        if (isNormal && group.length < this.superTileRules.minGroupToDestroy)
             return
 
+        if (!this.progress.canSpendMove()) {
+            this.endGame(false);
+            return;
+        }
+        this.progress.spendMove();
         this.isBusy = true
 
         let superId: number | null = null
 
-        if (this.tiles[cellPoss.r][cellPoss.c] instanceof NormalTile) {
+        if (isNormal) {
             superId = this.superTileRules.pickSpawnId(group.length)
         }
         else {
@@ -83,29 +104,41 @@ export class BoardController {
             group = this.uniqTiles.toArray()
         }
 
-        // 3) СНАЧАЛА анимация исчезновения (await)
+        // 3) РЎРќРђР§РђР›Рђ Р°РЅРёРјР°С†РёСЏ РёСЃС‡РµР·РЅРѕРІРµРЅРёСЏ (await)
         await this.boardView.hideTilesAnimated(group)
+        this.addScore(group.length);
 
-        // 4) Теперь меняем модель (после анимации)
+        // 4) РўРµРїРµСЂСЊ РјРµРЅСЏРµРј РјРѕРґРµР»СЊ (РїРѕСЃР»Рµ Р°РЅРёРјР°С†РёРё)
         group.forEach(p => {
             this.tiles[p.r][p.c] = null
         })
 
-        // 5) Спавним супертайл
+        // 5) РЎРїР°РІРЅРёРј СЃСѓРїРµСЂС‚Р°Р№Р»
         if (superId) {
             this.tiles[cellPoss.r][cellPoss.c] = this.tileFactory.createTile(superId)
             this.boardView.createTileInPlace(cellPoss, this.framesById.get(superId))
         }
 
-        // 6) Дальше у тебя будет падение (позже тоже анимируем)
+        // 6) Р”Р°Р»СЊС€Рµ Сѓ С‚РµР±СЏ Р±СѓРґРµС‚ РїР°РґРµРЅРёРµ (РїРѕР·Р¶Рµ С‚РѕР¶Рµ Р°РЅРёРјРёСЂСѓРµРј)
         const moves = this.moveTileDown()
-        await this.boardView.moveTilesAnimated(moves, 0.2)
+        await this.boardView.moveTilesAnimated(moves)
 
-        // можно оставить маленькую паузу если хочется
-        
+        // РјРѕР¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ РјР°Р»РµРЅСЊРєСѓСЋ РїР°СѓР·Сѓ РµСЃР»Рё С…РѕС‡РµС‚СЃСЏ
+
         let newTiles = this.addNewTiles();
         this.boardView.renderTilesAnimated(newTiles);
-        await delay(80) 
+        await delay(80)
+
+        if (this.checkEndConditions()) {
+            this.isBusy = false;
+            return;
+        }
+
+        if (!this.hasAnyMove()) {
+            this.endGame(false);
+            this.isBusy = false;
+            return;
+        }
 
         this.isBusy = false
     }
@@ -118,25 +151,12 @@ export class BoardController {
                 if (!this.tiles[r][c]) {
                     const randomTileId: number = this.randomId();
                     this.tiles[r][c] = this.tileFactory.createTile(randomTileId);
-                    result.push({r, c});
-                    this.boardView.createTile({r, c}, this.framesById.get(randomTileId));
+                    result.push({ r, c });
+                    this.boardView.createTile({ r, c }, this.framesById.get(randomTileId));
                 }
             }
         }
         return result;
-    }
-
-    private updateViews() {
-        for (let r = 0; r < this.tiles.length; r++) {
-            for (let c = 0; c < this.tiles.length; c++) {
-                if (!this.tiles[r][c]) {
-                    
-                }
-                else {
-                    this.boardView.setFrameTile({ r, c }, this.framesById.get(this.tiles[r][c].id));
-                }
-            }
-        }
     }
 
     private moveTileDown(): { from: CellPos; to: CellPos }[] {
@@ -158,5 +178,72 @@ export class BoardController {
         }
 
         return moves;
+    }
+
+    private addScore(groupSize: number): void {
+        const gained = groupSize * 10;
+        this.progress.addScore(gained);
+    }
+
+    private checkEndConditions(): boolean {
+        if (this.progress.isWin()) {
+            this.endGame(true);
+            return true;
+        }
+        if (this.progress.getMoves() <= 0) {
+            this.endGame(false);
+            return true;
+        }
+        return false;
+    }
+
+    private endGame(isWin: boolean): void {
+        this.isGameOver = true;
+        this.boardView.onCellClick = null;
+        this.progress.showResult(isWin ? "WIN" : "LOSE");
+    }
+
+    private hasAnyMove(): boolean {
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                const tile = this.tiles[r][c];
+                if (!tile) continue;
+                if (!(tile instanceof NormalTile)) return true;
+            }
+        }
+
+        const visited: boolean[][] = new Array(this.rows);
+        for (let r = 0; r < this.rows; r++) {
+            visited[r] = new Array(this.cols).fill(false);
+        }
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (visited[r][c]) continue;
+                const tile = this.tiles[r][c];
+                if (!tile || !(tile instanceof NormalTile)) continue;
+                const count = this.countGroupSize(r, c, tile.id, visited);
+                if (count >= this.superTileRules.minGroupToDestroy) return true;
+            }
+        }
+        return false;
+    }
+
+    private countGroupSize(sr: number, sc: number, id: number, visited: boolean[][]): number {
+        let count = 0;
+        const stack: CellPos[] = [{ r: sr, c: sc }];
+        while (stack.length > 0) {
+            const p = stack.pop();
+            if (visited[p.r][p.c]) continue;
+            visited[p.r][p.c] = true;
+            const tile = this.tiles[p.r][p.c];
+            if (!tile || !(tile instanceof NormalTile) || tile.id !== id) continue;
+            count++;
+            if (p.r > 0) stack.push({ r: p.r - 1, c: p.c });
+            if (p.r + 1 < this.rows) stack.push({ r: p.r + 1, c: p.c });
+            if (p.c > 0) stack.push({ r: p.r, c: p.c - 1 });
+            if (p.c + 1 < this.cols) stack.push({ r: p.r, c: p.c + 1 });
+        }
+        return count;
     }
 }
