@@ -3300,6 +3300,7 @@
     "rows": 9,
     "cols": 9,
     "catalogPath": "configs/tile_catalog",
+    "superRulesPath": "configs/super_rules",
     "_id": "c1vRKXvF5M44yI/l+CJsqS"
   },
   {

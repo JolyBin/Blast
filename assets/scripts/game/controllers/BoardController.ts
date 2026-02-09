@@ -23,7 +23,6 @@ export class BoardController {
     ) { }
 
     public start() {
-        this.boardView.init(this.rows, this.cols)
         this.generate();
         this.boardView.onCellClick = (cellPos) => { this.tryCollectTiles(cellPos) };
     }
@@ -34,12 +33,13 @@ export class BoardController {
 
     private generate() {
         this.tiles = [];
+        this.boardView.init(this.rows, this.cols);
         for (let r = 0; r < this.rows; r++) {
             const row: BaseTile[] = [];
             for (let c = 0; c < this.cols; c++) {
                 const randomTileId: number = this.randomId();
                 row.push(this.tileFactory.createTile(randomTileId));
-                this.boardView.createTile({ r: r, c: c }, this.framesById.get(randomTileId))
+                this.boardView.setFrameTile({ r: r, c: c }, this.framesById.get(randomTileId))
             }
             this.tiles.push(row);
         }
@@ -52,69 +52,85 @@ export class BoardController {
 
     private activeteOtherSuperTiles(activeTiles: CellPos[], currentTile: CellPos) {
         this.uniqSuperTiles.add(currentTile);
-        
+
         activeTiles.forEach(cellPos => {
             this.uniqTiles.add(cellPos);
-            if(!(this.tiles[cellPos.r][cellPos.c] instanceof NormalTile) && !this.uniqSuperTiles.has(cellPos)) {
+            if (!(this.tiles[cellPos.r][cellPos.c] instanceof NormalTile) && !this.uniqSuperTiles.has(cellPos)) {
                 this.activeteOtherSuperTiles(this.tiles[cellPos.r][cellPos.c].getAffected(this.tiles, cellPos), cellPos);
             }
         });
     }
 
     private async tryCollectTiles(cellPoss: CellPos) {
-        let group = this.tiles[cellPoss.r][cellPoss.c].getAffected(this.tiles, cellPoss);
+        if (this.isBusy) return
 
-        if (group.length < this.superTileRules.minGroupToDestroy || this.isBusy)
-            return;
-        this.isBusy = true;
+        let group = this.tiles[cellPoss.r][cellPoss.c].getAffected(this.tiles, cellPoss)
 
-        let superId;
+        if (group.length < this.superTileRules.minGroupToDestroy)
+            return
+
+        this.isBusy = true
+
+        let superId: number | null = null
+
         if (this.tiles[cellPoss.r][cellPoss.c] instanceof NormalTile) {
-            superId = this.superTileRules.pickSpawnId(group.length);
+            superId = this.superTileRules.pickSpawnId(group.length)
         }
-        else{
-            this.uniqSuperTiles = new UniqueCellPosSet(this.cols);
-            this.uniqTiles = new UniqueCellPosSet(this.cols);
-            this.activeteOtherSuperTiles(group, cellPoss);
-            group = this.uniqTiles.toArray();
+        else {
+            this.uniqSuperTiles = new UniqueCellPosSet(this.cols)
+            this.uniqTiles = new UniqueCellPosSet(this.cols)
+            this.activeteOtherSuperTiles(group, cellPoss)
+            group = this.uniqTiles.toArray()
         }
 
-        group.forEach(cellPoss => {
-            this.boardView.setVisibleTile(cellPoss, false);
-            this.tiles[cellPoss.r][cellPoss.c] = null;
-        });
+        // 3) СНАЧАЛА анимация исчезновения (await)
+        await this.boardView.hideTilesAnimated(group)
 
-        await delay(200);
+        // 4) Теперь меняем модель (после анимации)
+        group.forEach(p => {
+            this.tiles[p.r][p.c] = null
+        })
+
+        // 5) Спавним супертайл
         if (superId) {
-            this.tiles[cellPoss.r][cellPoss.c] = this.tileFactory.createTile(superId);
-            this.boardView.setFrameTile({ r: cellPoss.r, c: cellPoss.c }, this.framesById.get(superId));
+            this.tiles[cellPoss.r][cellPoss.c] = this.tileFactory.createTile(superId)
+            this.boardView.createTileInPlace(cellPoss, this.framesById.get(superId))
         }
-        this.moveTileDown();
-        this.updateViews();
-        await delay(200);
 
+        // 6) Дальше у тебя будет падение (позже тоже анимируем)
+        const moves = this.moveTileDown()
+        await this.boardView.moveTilesAnimated(moves, 0.2)
 
-        this.addNewTiles();
-        this.isBusy = false;
+        // можно оставить маленькую паузу если хочется
+        
+        let newTiles = this.addNewTiles();
+        this.boardView.renderTilesAnimated(newTiles);
+        await delay(80) 
+
+        this.isBusy = false
     }
 
-    private addNewTiles() {
+
+    private addNewTiles(): CellPos[] {
+        const result: CellPos[] = [];
         for (let r = 0; r < this.tiles.length; r++) {
             for (let c = 0; c < this.tiles.length; c++) {
                 if (!this.tiles[r][c]) {
                     const randomTileId: number = this.randomId();
                     this.tiles[r][c] = this.tileFactory.createTile(randomTileId);
-                    this.boardView.setFrameTile({ r, c }, this.framesById.get(randomTileId));
+                    result.push({r, c});
+                    this.boardView.createTile({r, c}, this.framesById.get(randomTileId));
                 }
             }
         }
+        return result;
     }
 
     private updateViews() {
         for (let r = 0; r < this.tiles.length; r++) {
             for (let c = 0; c < this.tiles.length; c++) {
                 if (!this.tiles[r][c]) {
-                    this.boardView.setVisibleTile({ r, c }, false);
+                    
                 }
                 else {
                     this.boardView.setFrameTile({ r, c }, this.framesById.get(this.tiles[r][c].id));
@@ -123,20 +139,24 @@ export class BoardController {
         }
     }
 
-    private moveTileDown() {
-        if (this.tiles.length < 2)
-            return;
-        for (let r = 1; r < this.tiles.length; r++) {
-            for (let c = 0; c < this.tiles.length; c++) {
-                if (!this.tiles[r][c])
-                    continue;
-                let tempR = r;
-                while (tempR > 0 && !this.tiles[tempR - 1][c]) {
-                    this.tiles[tempR - 1][c] = this.tiles[tempR][c];
-                    this.tiles[tempR][c] = null;
-                    tempR--;
+    private moveTileDown(): { from: CellPos; to: CellPos }[] {
+        const moves: { from: CellPos; to: CellPos }[] = [];
+        if (this.tiles.length < 2) return moves;
+
+        for (let c = 0; c < this.cols; c++) {
+            let write = 0;
+            for (let r = 0; r < this.rows; r++) {
+                const tile = this.tiles[r][c];
+                if (!tile) continue;
+                if (r !== write) {
+                    moves.push({ from: { r, c }, to: { r: write, c } });
+                    this.tiles[write][c] = tile;
+                    this.tiles[r][c] = null;
                 }
+                write++;
             }
         }
+
+        return moves;
     }
 }
